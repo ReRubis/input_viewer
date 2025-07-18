@@ -1,9 +1,12 @@
+use gilrs::ev::state;
 use gilrs::{Gilrs, Event, EventType, Button};
 use std::time::{Duration, Instant};
-use std::thread;
+use std::thread::{self, Thread};
+use threadpool::ThreadPool;
+use std::sync::{Arc, Mutex, RwLock};
+
 
 #[derive(Debug)]
-
 enum PossibleCoordinates {
     MinusOne = -1,
     Zero = 0,
@@ -11,7 +14,6 @@ enum PossibleCoordinates {
 }
 
 #[derive(Debug)]
-
 enum NumericalNotation {
     One = 1,
     Two = 2,
@@ -25,7 +27,6 @@ enum NumericalNotation {
 }
 
 #[derive(Debug)]
-
 enum ButtonState {
     Pressed,
     Released,
@@ -99,15 +100,25 @@ fn parse_event(event: &Event, current_state: &mut CardinalDirectionStates) {
 }
 
 
+fn render_positions(
+    state: &CardinalDirectionStates,
+) {
+    let position = calculate_position(state);
+    println!("Current position: {:?}", position);
+}
+
+
 fn main() {
+    let thread_pool = ThreadPool::new(2); 
+
     let mut gilrs = Gilrs::new().unwrap();
 
-    let mut current_state = CardinalDirectionStates {
+    let mut current_state = Arc::new(RwLock::new(CardinalDirectionStates {
         up: ButtonState::Released,
         down: ButtonState::Released,
         left: ButtonState::Released,
         right: ButtonState::Released,
-    };
+    }));
 
     let target_sequence = vec![
         Button::DPadRight,
@@ -122,12 +133,17 @@ fn main() {
 
     loop {
         while let Some(event) = gilrs.next_event() {
-            parse_event(&event, &mut current_state);
+
+            let mut state = current_state.write().unwrap();
+            parse_event(&event, &mut state);
             
-            current_position = calculate_position(&current_state);
+            let state_clone = Arc::clone(&current_state);
+            thread_pool.execute(move || {
+                let state = state_clone.read().unwrap();
+                render_positions(&state);
+            });
+            
 
         }
-        println!("Current position: {:?}", current_position);
-        thread::yield_now(); // Sleep to avoid busy waiting
     }
 }
