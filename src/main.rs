@@ -1,10 +1,23 @@
+use color_eyre::owo_colors::Style;
 use gilrs::ev::state;
 use gilrs::{Gilrs, Event, EventType, Button};
+use ratatui::symbols::border;
 use std::time::{Duration, Instant};
 use std::thread::{self, Thread};
 use threadpool::ThreadPool;
-use std::sync::{Arc, Mutex, RwLock};
-
+use std::sync::{Arc, Mutex, RwLock, mpsc::{self, Receiver, Sender}};
+use ratatui::{
+    crossterm::{
+        event::{self as ratEvent, Event as RatEvent},
+        terminal,
+    },
+    layout::{Constraint, Layout},
+    style::Color,
+    widgets::{Block, List, ListItem, Paragraph, Sparkline, Widget},
+    DefaultTerminal, Frame,
+    CompletedFrame,
+};
+use std::error::Error;
 
 #[derive(Debug)]
 enum PossibleCoordinates {
@@ -100,25 +113,81 @@ fn parse_event(event: &Event, current_state: &mut CardinalDirectionStates) {
 }
 
 
-fn render_positions(
-    state: &CardinalDirectionStates,
-) {
-    let position = calculate_position(state);
-    println!("Current position: {:?}", position);
+
+
+// Fully controls the terminal
+fn render_grid(
+    render_rx: Receiver<NumericalNotation>,
+) -> Result<(), String> {
+
+    if let Err(e) = color_eyre::install(){
+        eprintln!("Failed to install color_eyre: {}", e);
+        return Err(e.to_string());
+    };
+    let mut terminal = ratatui::init();
+    let mut current_position = NumericalNotation::Five;
+
+    loop{
+        if let Ok(new_position) = render_rx.try_recv() {
+            current_position = new_position;
+        }
+
+        if let Ok(CompletedFrame) = terminal.draw(|f| 
+            run_drawing(f, &current_position)
+        ) {
+
+        } else {
+            eprintln!("Failed to draw frame");
+            return Err("Failed to draw frame".to_string());
+        }
+        
+        match ratEvent::poll(Duration::from_millis(16)) {
+            Ok(true) => if let Ok(RatEvent::Key(key)) = ratEvent::read() {
+                match key.code {
+                    ratEvent::KeyCode::Esc => {
+                        println!("Exiting...");
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+            Ok(false) => {}
+            _ => {
+                eprintln!("Failed to read event");
+                return Err("Failed to read event".to_string());
+            }
+        }
+
+
+    }
+
+    ratatui::restore();
+    Ok(())
 }
 
 
+fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
+    let [border_area] = Layout::vertical([Constraint::Fill(1)])
+        .margin(1)
+        .areas(frame.area());
+
+    let position_text = format!("Current Position: {:?}", position);
+    let paragraph = Paragraph::new(position_text);
+    frame.render_widget(paragraph, border_area);
+}
+
 fn main() {
-    let thread_pool = ThreadPool::new(2); 
+
+    let (render_tx, render_rx) = mpsc::channel::<NumericalNotation>();
 
     let mut gilrs = Gilrs::new().unwrap();
 
-    let mut current_state = Arc::new(RwLock::new(CardinalDirectionStates {
+    let mut current_state = CardinalDirectionStates {
         up: ButtonState::Released,
         down: ButtonState::Released,
         left: ButtonState::Released,
         right: ButtonState::Released,
-    }));
+    };
 
     let target_sequence = vec![
         Button::DPadRight,
@@ -129,21 +198,23 @@ fn main() {
 
     let mut start_time: Option<Instant>= None;
     let mut current_step = 0;
-    let mut current_position: NumericalNotation = NumericalNotation::Five;
 
+    let render_handle = thread::spawn(move || render_grid(render_rx));
+    let mut current_position = NumericalNotation::Five;
     loop {
         while let Some(event) = gilrs.next_event() {
 
-            let mut state = current_state.write().unwrap();
-            parse_event(&event, &mut state);
-            
-            let state_clone = Arc::clone(&current_state);
-            thread_pool.execute(move || {
-                let state = state_clone.read().unwrap();
-                render_positions(&state);
-            });
-            
+            parse_event(&event, &mut current_state);
+            current_position = calculate_position(&current_state);
 
+            match render_tx.send(current_position) {
+                Ok(()) => {
+                    // Successfully sent the current position
+                }
+                Err(e) => {
+                    eprintln!("Failed to send current position: {}", e);
+                }
+            }
         }
     }
 }
