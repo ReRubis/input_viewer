@@ -2,9 +2,13 @@ use crate::static_types::NumericalNotation;
 use ratatui::{
     Frame,
     crossterm::event::{self as ratEvent, Event as RatEvent},
-    layout::{Constraint, Layout},
+    layout::{Alignment, Constraint, Layout},
     style::Color,
-    widgets::{Block, Paragraph},
+    symbols::Marker,
+    widgets::{
+        Block, Paragraph,
+        canvas::{Canvas, Circle},
+    },
 };
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -56,14 +60,6 @@ pub fn render_grid(render_rx: Receiver<NumericalNotation>) -> Result<(), String>
 }
 
 fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
-    let [border_area] = Layout::vertical([Constraint::Fill(1)])
-        .margin(1)
-        .areas(frame.area());
-
-    let position_text = format!("Current Position: {:?}", position);
-    let paragraph = Paragraph::new(position_text);
-    frame.render_widget(paragraph, border_area);
-
     let [border_area] = Layout::vertical([Constraint::Fill(1)])
         .margin(1)
         .areas(frame.area());
@@ -127,13 +123,27 @@ fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
         };
 
         let block = if is_current {
-            Block::bordered().title(number).style(
-                ratatui::style::Style::default()
-                    .bg(Color::Yellow)
-                    .fg(Color::Black),
-            )
+            let block = Block::default().title(number);
+            let inner_area = block.inner(area);
+
+            frame.render_widget(block, area);
+
+            let canvas = Canvas::default()
+                .paint(|ctx| {
+                    ctx.draw(&Circle {
+                        x: 0.0,
+                        y: 0.0,
+                        radius: 3.0,
+                        color: Color::Red,
+                    });
+                })
+                .marker(Marker::Braille)
+                .x_bounds([-5.0, 5.0])
+                .y_bounds([-5.0, 5.0]);
+            frame.render_widget(canvas, inner_area);
+            continue;
         } else {
-            Block::bordered().title(number)
+            Block::default().title(number)
         };
 
         frame.render_widget(block, area);
