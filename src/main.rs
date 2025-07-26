@@ -7,7 +7,7 @@ mod rendering;
 mod static_types;
 use input_reader::{calculate_position, parse_event};
 use rendering::render_grid;
-use static_types::{ButtonState, CardinalDirectionStates, NumericalNotation};
+use static_types::{ButtonState, ButtonsStates, GlobalState, NumericalNotation};
 use std::sync::mpsc;
 
 fn main() {
@@ -15,11 +15,15 @@ fn main() {
 
     let mut gilrs = Gilrs::new().unwrap();
 
-    let mut current_state = CardinalDirectionStates {
+    let mut current_state = ButtonsStates {
         up: ButtonState::Released,
         down: ButtonState::Released,
         left: ButtonState::Released,
         right: ButtonState::Released,
+        attack_north: ButtonState::Released,
+        attack_south: ButtonState::Released,
+        attack_east: ButtonState::Released,
+        attack_west: ButtonState::Released,
     };
 
     let target_sequence = vec![

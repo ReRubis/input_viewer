@@ -25,9 +25,19 @@ pub enum ButtonState {
 }
 
 #[derive(Debug)]
-pub struct CardinalDirectionStates {
+pub struct ButtonsStates {
     pub up: ButtonState,
     pub down: ButtonState,
     pub left: ButtonState,
     pub right: ButtonState,
+    pub attack_north: ButtonState,
+    pub attack_south: ButtonState,
+    pub attack_east: ButtonState,
+    pub attack_west: ButtonState,
+}
+
+#[derive(Debug)]
+pub struct GlobalState {
+    pub current_position: NumericalNotation,
+    pub attack_pressed: bool,
 }
