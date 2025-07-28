@@ -5,7 +5,7 @@ pub enum PossibleCoordinates {
     One = 1,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NumericalNotation {
     One = 1,
     Two = 2,
@@ -18,13 +18,13 @@ pub enum NumericalNotation {
     Nine = 9,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ButtonState {
     Pressed,
     Released,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ButtonsStates {
     pub up: ButtonState,
     pub down: ButtonState,
@@ -36,7 +36,7 @@ pub struct ButtonsStates {
     pub attack_west: ButtonState,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GlobalState {
     pub current_position: NumericalNotation,
     pub attack_pressed: bool,

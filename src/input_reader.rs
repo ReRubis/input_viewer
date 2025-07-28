@@ -76,3 +76,10 @@ pub fn parse_event(event: &Event, current_state: &mut ButtonsStates) {
         _ => {}
     }
 }
+
+pub fn is_attack_pressed(buttons_state: &ButtonsStates) -> bool {
+    buttons_state.attack_north == ButtonState::Pressed
+        || buttons_state.attack_south == ButtonState::Pressed
+        || buttons_state.attack_east == ButtonState::Pressed
+        || buttons_state.attack_west == ButtonState::Pressed
+}

@@ -5,13 +5,13 @@ use std::time::Instant;
 mod input_reader;
 mod rendering;
 mod static_types;
-use input_reader::{calculate_position, parse_event};
+use input_reader::{calculate_position, is_attack_pressed, parse_event};
 use rendering::render_grid;
 use static_types::{ButtonState, ButtonsStates, GlobalState, NumericalNotation};
 use std::sync::mpsc;
 
 fn main() {
-    let (render_tx, render_rx) = mpsc::channel::<NumericalNotation>();
+    let (render_tx, render_rx) = mpsc::channel::<GlobalState>();
 
     let mut gilrs = Gilrs::new().unwrap();
 
@@ -38,12 +38,17 @@ fn main() {
 
     let render_handle = thread::spawn(move || render_grid(render_rx));
     let mut current_position = NumericalNotation::Five;
+
+    let mut data_state = GlobalState {
+        current_position: current_position,
+        attack_pressed: false,
+    };
     loop {
         while let Some(event) = gilrs.next_event() {
             parse_event(&event, &mut current_state);
-            current_position = calculate_position(&current_state);
-
-            match render_tx.send(current_position) {
+            data_state.current_position = calculate_position(&current_state);
+            data_state.attack_pressed = is_attack_pressed(&current_state);
+            match render_tx.send(data_state.clone()) {
                 Ok(()) => {
                     // Successfully sent the current position
                 }

@@ -1,4 +1,4 @@
-use crate::static_types::NumericalNotation;
+use crate::static_types::{GlobalState, NumericalNotation};
 use ratatui::{
     Frame,
     crossterm::event::{self as ratEvent, Event as RatEvent},
@@ -15,7 +15,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Fully controls the terminal
-pub fn render_grid(render_rx: Receiver<NumericalNotation>) -> Result<(), String> {
+pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
     if let Err(e) = color_eyre::install() {
         eprintln!("Failed to install color_eyre: {}", e);
         return Err(e.to_string());
@@ -23,14 +23,19 @@ pub fn render_grid(render_rx: Receiver<NumericalNotation>) -> Result<(), String>
     let mut terminal = ratatui::init();
     let mut current_position = NumericalNotation::Five;
 
+    let mut current_state: GlobalState = GlobalState {
+        current_position: current_position,
+        attack_pressed: false,
+    };
+
     loop {
         let frame_start = Instant::now();
 
-        if let Ok(new_position) = render_rx.try_recv() {
-            current_position = new_position;
+        if let Ok(new_state) = render_rx.try_recv() {
+            current_state = new_state;
         }
 
-        if let Ok(CompletedFrame) = terminal.draw(|f| run_drawing(f, &current_position)) {
+        if let Ok(CompletedFrame) = terminal.draw(|f| run_drawing(f, &current_state)) {
         } else {
             eprintln!("Failed to draw frame");
             return Err("Failed to draw frame".to_string());
@@ -59,10 +64,11 @@ pub fn render_grid(render_rx: Receiver<NumericalNotation>) -> Result<(), String>
     Ok(())
 }
 
-fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
-    let [border_area] = Layout::vertical([Constraint::Fill(1)])
-        .margin(1)
-        .areas(frame.area());
+fn run_drawing(frame: &mut Frame, state: &GlobalState) {
+    let [left_area, right_area] =
+        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .margin(1)
+            .areas(frame.area());
 
     // Create 3 horizontal rows
     let rows = Layout::vertical([
@@ -70,7 +76,7 @@ fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
         Constraint::Percentage(33),
         Constraint::Percentage(34),
     ])
-    .split(border_area);
+    .split(left_area);
 
     // Create 3 columns for each row
     let top_cols = Layout::horizontal([
@@ -109,7 +115,7 @@ fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
 
     // Render each grid cell
     for (area, number) in grid_positions {
-        let is_current = match (number, position) {
+        let is_current = match (number, &state.current_position) {
             ("1", NumericalNotation::One)
             | ("2", NumericalNotation::Two)
             | ("3", NumericalNotation::Three)
@@ -122,7 +128,7 @@ fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
             _ => false,
         };
 
-        let block = if is_current {
+        if is_current {
             let block = Block::default().title(number);
             let inner_area = block.inner(area);
 
@@ -143,9 +149,30 @@ fn run_drawing(frame: &mut Frame, position: &NumericalNotation) {
             frame.render_widget(canvas, inner_area);
             continue;
         } else {
-            Block::default().title(number)
+            let block = Block::default().title(number);
+            frame.render_widget(block, area);
         };
-
-        frame.render_widget(block, area);
     }
+
+    if state.attack_pressed {
+        let block = Block::default().title("Attack Pressed");
+        let inner_area = block.inner(right_area);
+        frame.render_widget(block, right_area);
+        let canvas = Canvas::default()
+            .paint(|ctx| {
+                ctx.draw(&Circle {
+                    x: 0.0,
+                    y: 0.0,
+                    radius: 3.0,
+                    color: Color::Red,
+                });
+            })
+            .marker(Marker::Braille)
+            .x_bounds([-5.0, 5.0])
+            .y_bounds([-5.0, 5.0]);
+        frame.render_widget(canvas, inner_area);
+    } else {
+        let block = Block::default().title("No Attack");
+        frame.render_widget(block, right_area);
+    };
 }
