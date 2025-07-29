@@ -70,89 +70,37 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
             .margin(1)
             .areas(frame.area());
 
-    // Create 3 horizontal rows
-    let rows = Layout::vertical([
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        Constraint::Percentage(34),
-    ])
-    .split(left_area);
+    let circle_coordinates = match &state.current_position {
+        NumericalNotation::One => (-3.1, -3.1),
+        NumericalNotation::Two => (0.0, -3.1),
+        NumericalNotation::Three => (3.1, -3.1),
+        NumericalNotation::Four => (-3.1, 0.0),
+        NumericalNotation::Five => (0.0, 0.0),
+        NumericalNotation::Six => (3.1, 0.0),
+        NumericalNotation::Seven => (-3.1, 3.1),
+        NumericalNotation::Eight => (0.0, 3.1),
+        NumericalNotation::Nine => (3.1, 3.1),
+        _ => (0.0, 0.0),
+    };
 
-    // Create 3 columns for each row
-    let top_cols = Layout::horizontal([
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        Constraint::Percentage(34),
-    ])
-    .split(rows[0]);
+    let block = Block::default().title("Input map");
+    let inner_area = block.inner(left_area);
 
-    let middle_cols = Layout::horizontal([
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        Constraint::Percentage(34),
-    ])
-    .split(rows[1]);
+    frame.render_widget(block, left_area);
 
-    let bottom_cols = Layout::horizontal([
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        Constraint::Percentage(34),
-    ])
-    .split(rows[2]);
-
-    // Create blocks for each grid position
-    let grid_positions = [
-        (top_cols[0], "7"),
-        (top_cols[1], "8"),
-        (top_cols[2], "9"),
-        (middle_cols[0], "4"),
-        (middle_cols[1], "5"),
-        (middle_cols[2], "6"),
-        (bottom_cols[0], "1"),
-        (bottom_cols[1], "2"),
-        (bottom_cols[2], "3"),
-    ];
-
-    // Render each grid cell
-    for (area, number) in grid_positions {
-        let is_current = match (number, &state.current_position) {
-            ("1", NumericalNotation::One)
-            | ("2", NumericalNotation::Two)
-            | ("3", NumericalNotation::Three)
-            | ("4", NumericalNotation::Four)
-            | ("5", NumericalNotation::Five)
-            | ("6", NumericalNotation::Six)
-            | ("7", NumericalNotation::Seven)
-            | ("8", NumericalNotation::Eight)
-            | ("9", NumericalNotation::Nine) => true,
-            _ => false,
-        };
-
-        if is_current {
-            let block = Block::default().title(number);
-            let inner_area = block.inner(area);
-
-            frame.render_widget(block, area);
-
-            let canvas = Canvas::default()
-                .paint(|ctx| {
-                    ctx.draw(&Circle {
-                        x: 0.0,
-                        y: 0.0,
-                        radius: 3.0,
-                        color: Color::Red,
-                    });
-                })
-                .marker(Marker::Braille)
-                .x_bounds([-5.0, 5.0])
-                .y_bounds([-5.0, 5.0]);
-            frame.render_widget(canvas, inner_area);
-            continue;
-        } else {
-            let block = Block::default().title(number);
-            frame.render_widget(block, area);
-        };
-    }
+    let canvas = Canvas::default()
+        .paint(|ctx| {
+            ctx.draw(&Circle {
+                x: circle_coordinates.0 as f64,
+                y: circle_coordinates.1 as f64,
+                radius: 1.5,
+                color: Color::Red,
+            });
+        })
+        .marker(Marker::Braille)
+        .x_bounds([-5.0, 5.0])
+        .y_bounds([-5.0, 5.0]);
+    frame.render_widget(canvas, inner_area);
 
     if state.attack_pressed {
         let block = Block::default().title("Attack Pressed");
