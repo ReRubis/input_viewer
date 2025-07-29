@@ -7,7 +7,7 @@ use ratatui::{
     symbols::Marker,
     widgets::{
         Block, Paragraph,
-        canvas::{Canvas, Circle},
+        canvas::{Canvas, Circle, Line},
     },
 };
 use std::sync::mpsc::Receiver;
@@ -26,6 +26,8 @@ pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
     let mut current_state: GlobalState = GlobalState {
         current_position: current_position,
         attack_pressed: false,
+        position_history: Vec::new(),
+        close_requested: false,
     };
 
     loop {
@@ -46,6 +48,7 @@ pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
                 match key.code {
                     ratEvent::KeyCode::Esc => {
                         println!("Exiting...");
+                        // current_state.close_requested = true;
                         break;
                     }
                     _ => {}
@@ -64,13 +67,8 @@ pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
     Ok(())
 }
 
-fn run_drawing(frame: &mut Frame, state: &GlobalState) {
-    let [left_area, right_area] =
-        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .margin(1)
-            .areas(frame.area());
-
-    let circle_coordinates = match &state.current_position {
+fn get_coordinates(position: &NumericalNotation) -> (f64, f64) {
+    match position {
         NumericalNotation::One => (-3.1, -3.1),
         NumericalNotation::Two => (0.0, -3.1),
         NumericalNotation::Three => (3.1, -3.1),
@@ -80,8 +78,34 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
         NumericalNotation::Seven => (-3.1, 3.1),
         NumericalNotation::Eight => (0.0, 3.1),
         NumericalNotation::Nine => (3.1, 3.1),
-        _ => (0.0, 0.0),
-    };
+    }
+}
+
+fn get_coordinates_pairs(positions: &[NumericalNotation]) -> Vec<((f64, f64), (f64, f64))> {
+    let mut coordinated_positions = Vec::new();
+
+    for position in positions {
+        let coords = get_coordinates(position);
+        if !coordinated_positions.contains(&coords) {
+            coordinated_positions.push(coords);
+        }
+    }
+
+    coordinated_positions
+        .windows(2)
+        .map(|window| (window[0], window[1]))
+        .collect()
+}
+
+fn run_drawing(frame: &mut Frame, state: &GlobalState) {
+    let [left_area, right_area] =
+        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .margin(1)
+            .areas(frame.area());
+
+    let circle_coordinates = get_coordinates(&state.current_position);
+
+    let lines_pairs = get_coordinates_pairs(&state.position_history);
 
     let block = Block::default().title("Input map");
     let inner_area = block.inner(left_area);
@@ -96,10 +120,20 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
                 radius: 1.5,
                 color: Color::Red,
             });
+            for (start, end) in &lines_pairs {
+                ctx.draw(&Line {
+                    x1: start.0 as f64,
+                    y1: start.1 as f64,
+                    x2: end.0 as f64,
+                    y2: end.1 as f64,
+                    color: Color::Green,
+                });
+            }
         })
         .marker(Marker::Braille)
         .x_bounds([-5.0, 5.0])
         .y_bounds([-5.0, 5.0]);
+
     frame.render_widget(canvas, inner_area);
 
     if state.attack_pressed {

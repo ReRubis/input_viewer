@@ -42,11 +42,19 @@ fn main() {
     let mut data_state = GlobalState {
         current_position: current_position,
         attack_pressed: false,
+        position_history: Vec::new(),
+        close_requested: false,
     };
     loop {
         while let Some(event) = gilrs.next_event() {
             parse_event(&event, &mut current_state);
             data_state.current_position = calculate_position(&current_state);
+            data_state
+                .position_history
+                .push(data_state.current_position.clone());
+            if data_state.position_history.len() > 10 {
+                data_state.position_history.remove(0);
+            }
             data_state.attack_pressed = is_attack_pressed(&current_state);
             match render_tx.send(data_state.clone()) {
                 Ok(()) => {

@@ -40,4 +40,6 @@ pub struct ButtonsStates {
 pub struct GlobalState {
     pub current_position: NumericalNotation,
     pub attack_pressed: bool,
+    pub position_history: Vec<NumericalNotation>,
+    pub close_requested: bool,
 }
