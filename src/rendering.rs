@@ -86,7 +86,7 @@ fn get_coordinates_pairs(positions: &[NumericalNotation]) -> Vec<((f64, f64), (f
 
     for position in positions {
         let coords = get_coordinates(position);
-        if !coordinated_positions.contains(&coords) {
+        if coordinated_positions.last() != Some(&coords) {
             coordinated_positions.push(coords);
         }
     }
