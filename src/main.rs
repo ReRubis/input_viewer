@@ -9,6 +9,7 @@ use input_reader::{calculate_position, is_attack_pressed, parse_event};
 use rendering::render_grid;
 use static_types::{ButtonState, ButtonsStates, GlobalState, NumericalNotation};
 use std::sync::mpsc;
+use std::time::Duration;
 
 fn main() {
     let (render_tx, render_rx) = mpsc::channel::<GlobalState>();
@@ -46,24 +47,38 @@ fn main() {
         close_requested: false,
     };
     loop {
+        let frame_start = Instant::now();
+
+        // Process all pending events
         while let Some(event) = gilrs.next_event() {
             parse_event(&event, &mut current_state);
-            data_state.current_position = calculate_position(&current_state);
-            data_state
-                .position_history
-                .push(data_state.current_position.clone());
-            if data_state.position_history.len() > 10 {
-                data_state.position_history.remove(0);
+        }
+
+        // Update state once per frame
+        data_state.current_position = calculate_position(&current_state);
+        data_state
+            .position_history
+            .push(data_state.current_position.clone());
+        if data_state.position_history.len() > 16 {
+            data_state.position_history.remove(0);
+        }
+
+        data_state.attack_pressed = is_attack_pressed(&current_state);
+
+        match render_tx.send(data_state.clone()) {
+            Ok(()) => {
+                // Successfully sent the current position
             }
-            data_state.attack_pressed = is_attack_pressed(&current_state);
-            match render_tx.send(data_state.clone()) {
-                Ok(()) => {
-                    // Successfully sent the current position
-                }
-                Err(e) => {
-                    eprintln!("Failed to send current position: {}", e);
-                }
+            Err(e) => {
+                eprintln!("Failed to send current position: {}", e);
             }
+        }
+
+        // Sleep to maintain 60 FPS
+        let frame_time = frame_start.elapsed();
+        let target_frame_time = Duration::from_nanos(16_666_667); // 1/60 second
+        if frame_time < target_frame_time {
+            thread::sleep(target_frame_time - frame_time);
         }
     }
 }
