@@ -51,7 +51,7 @@ pub struct GlobalState {
     pub attack_pressed: bool,
     pub position_history: Vec<NumericalNotation>,
     pub close_requested: bool,
-    pub last_successful_move: Option<Moves>,
+    pub last_successful_move: Vec<Moves>,
 }
 
 pub fn create_move_map() -> HashMap<Moves, Vec<NumericalNotation>> {

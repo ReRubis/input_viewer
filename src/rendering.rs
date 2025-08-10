@@ -27,7 +27,7 @@ pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
         attack_pressed: false,
         position_history: Vec::new(),
         close_requested: false,
-        last_successful_move: None,
+        last_successful_move: vec![],
     };
 
     loop {

@@ -9,10 +9,7 @@ mod static_types;
 use input_explainer::check_move_sequence;
 use input_reader::{calculate_position, is_attack_pressed, parse_event};
 use rendering::render_grid;
-use static_types::{
-    ButtonState, ButtonsStates, GlobalState, Moves, NumericalNotation, create_move_map,
-};
-use std::collections::HashMap;
+use static_types::{ButtonState, ButtonsStates, GlobalState, NumericalNotation, create_move_map};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -42,12 +39,11 @@ fn main() {
         attack_pressed: false,
         position_history: Vec::new(),
         close_requested: false,
-        last_successful_move: None,
+        last_successful_move: vec![],
     };
     loop {
         let frame_start = Instant::now();
 
-        // Process all pending events
         while let Some(event) = gilrs.next_event() {
             parse_event(&event, &mut current_state);
         }
@@ -62,13 +58,14 @@ fn main() {
 
         data_state.attack_pressed = is_attack_pressed(&current_state);
         if data_state.attack_pressed {
-            data_state.last_successful_move =
-                check_move_sequence(&data_state.position_history, &move_map);
+            if let Some(last_successful_move) =
+                check_move_sequence(&data_state.position_history, &move_map)
+            {
+                data_state.last_successful_move.push(last_successful_move);
+            }
         };
         match render_tx.send(data_state.clone()) {
-            Ok(()) => {
-                // Successfully sent the current position
-            }
+            Ok(()) => {}
             Err(e) => {
                 eprintln!("Failed to send current position: {}", e);
             }
