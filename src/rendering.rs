@@ -14,7 +14,6 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time::{Duration, Instant};
 
-// Fully controls the terminal
 pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
     if let Err(e) = color_eyre::install() {
         eprintln!("Failed to install color_eyre: {}", e);
@@ -28,6 +27,7 @@ pub fn render_grid(render_rx: Receiver<GlobalState>) -> Result<(), String> {
         attack_pressed: false,
         position_history: Vec::new(),
         close_requested: false,
+        last_successful_move: None,
     };
 
     loop {
@@ -103,14 +103,20 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
             .margin(1)
             .areas(frame.area());
 
+    let [top_left_area, bottom_left_area] =
+        Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)]).areas(left_area);
+
+    let [top_right_area, bottom_right_area] =
+        Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .areas(right_area);
     let circle_coordinates = get_coordinates(&state.current_position);
 
     let lines_pairs = get_coordinates_pairs(&state.position_history);
 
     let block = Block::default().title("Input map");
-    let inner_area = block.inner(left_area);
+    let inner_area = block.inner(top_left_area);
 
-    frame.render_widget(block, left_area);
+    frame.render_widget(block, top_left_area);
 
     let canvas = Canvas::default()
         .paint(|ctx| {
@@ -138,8 +144,8 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
 
     if state.attack_pressed {
         let block = Block::default().title("Attack Pressed");
-        let inner_area = block.inner(right_area);
-        frame.render_widget(block, right_area);
+        let inner_area = block.inner(top_right_area);
+        frame.render_widget(block, top_right_area);
         let canvas = Canvas::default()
             .paint(|ctx| {
                 ctx.draw(&Circle {
@@ -155,6 +161,15 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
         frame.render_widget(canvas, inner_area);
     } else {
         let block = Block::default().title("No Attack");
-        frame.render_widget(block, right_area);
+        frame.render_widget(block, top_right_area);
     };
+
+    frame.render_widget(
+        Paragraph::new(format!(
+            "Last successful move: {:?}",
+            state.last_successful_move
+        ))
+        .alignment(Alignment::Center),
+        bottom_left_area,
+    );
 }

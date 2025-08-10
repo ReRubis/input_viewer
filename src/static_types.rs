@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub enum PossibleCoordinates {
     MinusOne = -1,
@@ -5,7 +7,7 @@ pub enum PossibleCoordinates {
     One = 1,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum NumericalNotation {
     One = 1,
     Two = 2,
@@ -18,10 +20,17 @@ pub enum NumericalNotation {
     Nine = 9,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub enum ButtonState {
     Pressed,
     Released,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
+pub enum Moves {
+    DP,
+    QCF,
+    QCB,
 }
 
 #[derive(Debug, Clone)]
@@ -42,4 +51,18 @@ pub struct GlobalState {
     pub attack_pressed: bool,
     pub position_history: Vec<NumericalNotation>,
     pub close_requested: bool,
+    pub last_successful_move: Option<Moves>,
+}
+
+pub fn create_move_map() -> HashMap<Moves, Vec<NumericalNotation>> {
+    let mut move_map = HashMap::new();
+    move_map.insert(
+        Moves::DP,
+        vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ],
+    );
+    move_map
 }

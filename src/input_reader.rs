@@ -1,7 +1,6 @@
 use crate::static_types::{ButtonState, ButtonsStates, NumericalNotation, PossibleCoordinates};
 use gilrs::{Button, Event, EventType};
 
-// Converts buttons states to a numerical notation, neutral SOCD
 pub fn calculate_position(buttons_state: &ButtonsStates) -> NumericalNotation {
     let vertical_coordinate: PossibleCoordinates;
     match (&buttons_state.up, &buttons_state.down) {
