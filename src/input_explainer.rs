@@ -56,25 +56,33 @@ fn count_distance(
     let first_input = move_sequence.first().unwrap();
     let last_input = move_sequence.last().unwrap();
 
-    let mut last_input_count = 0;
-    for position in position_history.iter().rev() {
-        if position != last_input {
-            last_input_count += 1;
-        } else {
+    // Find first occurrence of last_input when searching from the end
+    let mut last_input_index = None;
+    for (i, position) in position_history.iter().enumerate().rev() {
+        if position == last_input {
+            last_input_index = Some(i);
             break;
         }
     }
 
-    let mut first_input_count = 0;
-
-    for position in position_history.iter().rev() {
-        if position != first_input {
-            first_input_count += 1;
-        } else {
+    let mut first_input_index = None;
+    for (i, position) in position_history.iter().enumerate().rev() {
+        if position == first_input {
+            first_input_index = Some(i);
             break;
         }
     }
-    first_input_count - last_input_count + 1
+
+    match (first_input_index, last_input_index) {
+        (Some(first_idx), Some(last_idx)) => {
+            if last_idx >= first_idx {
+                last_idx - first_idx + 1
+            } else {
+                0
+            }
+        }
+        _ => 0,
+    }
 }
 
 pub fn check_move_sequence(
