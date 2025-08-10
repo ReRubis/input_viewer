@@ -56,20 +56,29 @@ fn count_distance(
     let first_input = move_sequence.first().unwrap();
     let last_input = move_sequence.last().unwrap();
 
-    // Find first occurrence of last_input when searching from the end
-    let mut last_input_index = None;
-    for (i, position) in position_history.iter().enumerate().rev() {
-        if position == last_input {
-            last_input_index = Some(i);
-            break;
-        }
-    }
-
     let mut first_input_index = None;
     for (i, position) in position_history.iter().enumerate().rev() {
         if position == first_input {
             first_input_index = Some(i);
             break;
+        }
+    }
+
+    let mut last_input_index = None;
+
+    if let Some(first_idx) = first_input_index {
+        for (i, position) in position_history[first_idx..].iter().enumerate().rev() {
+            if position == last_input {
+                last_input_index = Some(first_idx + i);
+                break;
+            }
+        }
+    } else {
+        for (i, position) in position_history.iter().enumerate().rev() {
+            if position == last_input {
+                last_input_index = Some(i);
+                break;
+            }
         }
     }
 

@@ -31,6 +31,8 @@ pub enum Moves {
     DP,
     QCF,
     QCB,
+    ARCSUPER,
+    HCB,
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +64,16 @@ pub fn create_move_map() -> HashMap<Moves, Vec<NumericalNotation>> {
             NumericalNotation::Six,
             NumericalNotation::Two,
             NumericalNotation::Three,
+        ],
+    );
+    move_map.insert(
+        Moves::HCB,
+        vec![
+            NumericalNotation::Six,
+            NumericalNotation::Three,
+            NumericalNotation::Two,
+            NumericalNotation::One,
+            NumericalNotation::Four,
         ],
     );
     move_map
