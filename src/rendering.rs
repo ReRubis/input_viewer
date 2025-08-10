@@ -6,7 +6,7 @@ use ratatui::{
     style::Color,
     symbols::Marker,
     widgets::{
-        Block, Paragraph,
+        Block, Paragraph, Wrap,
         canvas::{Canvas, Circle, Line},
     },
 };
@@ -163,13 +163,13 @@ fn run_drawing(frame: &mut Frame, state: &GlobalState) {
         let block = Block::default().title("No Attack");
         frame.render_widget(block, top_right_area);
     };
-
     frame.render_widget(
         Paragraph::new(format!(
             "Last successful move: {:?}",
             state.last_successful_move
         ))
-        .alignment(Alignment::Center),
+        .alignment(Alignment::Center)
+        .wrap(ratatui::widgets::Wrap { trim: true }),
         bottom_left_area,
     );
 }

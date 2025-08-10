@@ -3,7 +3,7 @@ use crate::static_types::{
 };
 use std::collections::HashMap;
 
-pub fn is_valid_sequence(
+fn is_valid_sequence(
     position_history: &[NumericalNotation],
     move_sequence: &[NumericalNotation],
 ) -> bool {
@@ -45,23 +45,101 @@ pub fn is_valid_sequence(
     }
 }
 
+fn count_distance(
+    position_history: &[NumericalNotation],
+    move_sequence: &[NumericalNotation],
+) -> usize {
+    if move_sequence.is_empty() || position_history.is_empty() {
+        return 0;
+    }
+
+    let first_input = move_sequence.first().unwrap();
+    let last_input = move_sequence.last().unwrap();
+
+    let mut last_input_count = 0;
+    for position in position_history.iter().rev() {
+        if position != last_input {
+            last_input_count += 1;
+        } else {
+            break;
+        }
+    }
+
+    let mut first_input_count = 0;
+
+    for position in position_history.iter().rev() {
+        if position != first_input {
+            first_input_count += 1;
+        } else {
+            break;
+        }
+    }
+    first_input_count - last_input_count + 1
+}
+
 pub fn check_move_sequence(
     position_history: &[NumericalNotation],
     move_map: &HashMap<Moves, Vec<NumericalNotation>>,
-) -> Option<Moves> {
+) -> (Option<Moves>, usize) {
     for (move_name, move_sequence) in move_map {
         if move_sequence.last() == position_history.last() {
             if is_valid_sequence(position_history, move_sequence) {
-                return Some(*move_name);
+                return (
+                    Some(*move_name),
+                    count_distance(position_history, move_sequence),
+                );
             }
         }
     }
-    None
+    (None, 0)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_count_sequence() {
+        let position_history = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        let move_sequence = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        assert_eq!(count_distance(&position_history, &move_sequence), 3);
+
+        let position_history = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        let move_sequence = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        assert_eq!(count_distance(&position_history, &move_sequence), 4);
+
+        let position_history = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        let move_sequence = vec![
+            NumericalNotation::Six,
+            NumericalNotation::Two,
+            NumericalNotation::Three,
+        ];
+        assert_eq!(count_distance(&position_history, &move_sequence), 3);
+    }
 
     #[test]
     fn test_is_valid_sequence() {

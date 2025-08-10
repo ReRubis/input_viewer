@@ -58,10 +58,12 @@ fn main() {
 
         data_state.attack_pressed = is_attack_pressed(&current_state);
         if data_state.attack_pressed {
-            if let Some(last_successful_move) =
+            if let (Some(last_successful_move), _distance) =
                 check_move_sequence(&data_state.position_history, &move_map)
             {
-                data_state.last_successful_move.push(last_successful_move);
+                data_state
+                    .last_successful_move
+                    .push((last_successful_move, data_state.position_history.len()));
             }
         };
         match render_tx.send(data_state.clone()) {
